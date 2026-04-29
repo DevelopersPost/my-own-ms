@@ -1,0 +1,163 @@
+services:
+  xappdb:
+    container_name: xappdb
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: xappdb
+    extends:
+      file: common-config.yml
+      service: microservice-db-config
+
+  yappdb:
+    container_name: yappdb
+    ports:
+      - 3307:3306
+    environment:
+      MYSQL_DATABASE: yappdb
+    extends:
+      file: common-config.yml
+      service: microservice-db-config
+
+  zappdb:
+    container_name: zappdb
+    ports:
+      - 3308:3306
+    environment:
+      MYSQL_DATABASE: zappdb
+    extends:
+      file: common-config.yml
+      service: microservice-db-config
+
+  configserver:
+    image: "rajeev199/configserver:s4"
+    container_name: configserver
+    ports:
+      - "8071:8071"
+    healthcheck:
+      test: "curl --fail --silent localhost:8071/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    extends:
+      service: network-deploy-service
+      file: common-config.yml
+
+  eurekaserver:
+    image: "rajeev199/eurekaserver:s4"
+    container_name: eurekaserver
+    ports:
+      - "8070:8070"
+    depends_on:
+      configserver:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:8070/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SPRING_APPLICATION_NAME: eurekaserver
+    extends:
+      service: microservice-configserver-config
+      file: common-config.yml
+
+  x-app:
+    image: "rajeev199/x-app:s4"
+    container_name: x-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      configserver:
+        condition: service_healthy
+      xappdb:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:8080/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SPRING_APPLICATION_NAME: x-app
+      SPRING_DATASOURCE_URL: "jdbc:mysql://xappdb:3306/xappdb"
+    extends:
+      service: microservice-eureka-config
+      file: common-config.yml
+
+  y-app:
+    image: "rajeev199/y-app:s4"
+    container_name: y-app
+    ports:
+      - "8081:8081"
+    depends_on:
+      configserver:
+        condition: service_healthy
+      yappdb:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:8081/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SPRING_APPLICATION_NAME: "y-app"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://yappdb:3306/yappdb"
+    extends:
+      service: microservice-eureka-config
+      file: common-config.yml
+
+  z-app:
+    image: "rajeev199/z-app:s4"
+    container_name: z-app
+    ports:
+      - "8082:8082"
+    depends_on:
+      configserver:
+        condition: service_healthy
+      zappdb:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    healthcheck:
+      test: "curl --fail --silent localhost:8082/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    environment:
+      SPRING_APPLICATION_NAME: "z-app"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://zappdb:3306/zappdb"
+    extends:
+      service: microservice-eureka-config
+      file: common-config.yml
+
+  edgeserver:
+    image: "rajeev199/edgeserver:s4"
+    container_name: edgeserver
+    ports:
+      - "8072:8072"
+    depends_on:
+      x-app:
+        condition: service_healthy
+      y-app:
+        condition: service_healthy
+      z-app:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: edgeserver
+    extends:
+      service: microservice-eureka-config
+      file: common-config.yml
+
+
+networks:
+  rajnet:
+    driver: "bridge"

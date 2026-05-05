@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 
-@FeignClient(name = "z-app")
+@FeignClient(name = "z-app" , fallback = ZFallBack.class)
 public interface ZAppFeignClient {
 
     @GetMapping("/employees")

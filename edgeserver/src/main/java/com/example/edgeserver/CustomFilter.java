@@ -1,6 +1,5 @@
 package com.example.edgeserver;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,8 +11,9 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Configuration
-@Slf4j
 public class CustomFilter {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CustomFilter.class);
 
     public static final String CORRELATION_ID = "app-correlation-id";
 

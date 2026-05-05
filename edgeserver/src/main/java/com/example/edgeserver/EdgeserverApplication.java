@@ -21,7 +21,9 @@ public class EdgeserverApplication {
                 .route(p -> p
                         .path("/app/x-app/**")
                         .filters( f -> f.rewritePath("/app/x-app/(?<segment>.*)","/${segment}")
-                                .addResponseHeader("X-Response-Time", LocalDateTime.now().toString()))
+                                .addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
+                                .circuitBreaker(config -> config.setName("XAPPCB")
+                                        .setFallbackUri("forward:/contactSupport")))
                         .uri("lb://X-APP"))
                 .route(p -> p
                         .path("/app/y-app/**")

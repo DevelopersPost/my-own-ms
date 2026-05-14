@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,9 @@ import com.example.x.EmployeeRepository;
 
 @RestController
 public class XController {
+
+    @Autowired
+    StreamBridge streamBridge;
 
     private static final Logger log = LoggerFactory.getLogger(XController.class);
 
@@ -68,8 +72,17 @@ public class XController {
 
         List<Employee> allEmployees = getAllEmployees();
         response.put("x-app", allEmployees);
-
+        String name = allEmployees.stream().map(Employee::getName).reduce("", (x, y) -> x.concat(y));
+        String role = allEmployees.stream().map(Employee::getRole).reduce("", (x, y) -> x.concat(y));
+        PersonMessageDto personMessageDto = new PersonMessageDto(name, role);
+        sendCommunication(personMessageDto);
         return response;
+    }
+
+    private void sendCommunication(PersonMessageDto personMessageDto) {
+        log.info("Sending Communication request for the details: {}", personMessageDto);
+        var result = streamBridge.send("sendCommunication-out-0", personMessageDto);
+        log.info("Is the Communication request successfully triggered ? : {}", result);
     }
 
 
